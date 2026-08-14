@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: streamapp-backend
+  profiles:
+    active: mysql
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+
+# --- Aplicación específica ---
+app:
+  media:
+    # Directorio raíz del contenido local servido por el backend.
+    root: ./media
+  jwt:
+    # Secreto para firmar tokens JWT (en producción sobrecargarlo por variable de entorno).
+    secret: ${JWT_SECRET:StreamApp_Dev_Secret_Key_Change_This_In_Production_2024!}
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+  streaming:
+    # Vigencia de los tickets de streaming (ms). 30 min por defecto.
+    ticket-ttl-ms: ${STREAM_TICKET_TTL_MS:1800000}
+  admin:
+    # Credenciales del admin de arranque (seed). Sobre-escribir en producción.
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:admin1234}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

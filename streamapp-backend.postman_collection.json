@@ -1,0 +1,1167 @@
+{
+  "info": {
+    "_postman_id": "9f4b2c1e-8a3d-4d5e-9b6f-1c2d3e4f5a6b",
+    "name": "StreamApp Backend",
+    "description": "Pruebas del backend streamapp. El login guarda el token automáticamente y el explorador captura el ticket de streaming (variable streamTicket) para los tests de streaming. Cambiar la variable baseUrl si el servidor corre en otra puerta.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Autenticacion",
+      "item": [
+        {
+          "name": "Register (nuevo usuario)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('token', pm.response.json().token);",
+                  "    pm.collectionVariables.set('username', pm.response.json().username);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"prueba1\",\n  \"password\": \"secreto123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register repetido (esperado 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"prueba1\",\n  \"password\": \"secreto123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('token', pm.response.json().token);",
+                  "    pm.collectionVariables.set('username', pm.response.json().username);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login pass incorrecta (esperado 401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"mal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "GET /me (con token)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "GET /me sin token (esperado 401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Roles / aislamiento",
+      "item": [
+        {
+          "name": "Explorer sin token (esperado 401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/explorer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "explorer"]
+            }
+          }
+        },
+        {
+          "name": "Explorer con token USER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const arr = pm.response.json();",
+                  "    const playable = Array.isArray(arr) ? arr.find(n => n.playable && n.streamUrl) : null;",
+                  "    if (playable) {",
+                  "        pm.collectionVariables.set('streamTicket', playable.streamUrl.replace(/^\\/api\\/stream\\//, ''));",
+                  "        pm.collectionVariables.set('currentMedia', playable.name);",
+                  "        console.log('streamTicket capturado:', playable.streamUrl);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/explorer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "explorer"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Admin: crear usuario USER (esperado 403 para token USER)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"usuario2\",\n  \"password\": \"secreto123\",\n  \"role\": \"ROLE_USER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            },
+            "description": "Con el token de un USER devuelve 403 (aislamiento de roles)."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Admin: listar usuarios (solo ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          },
+          "description": "Ejecutar esta prueba DESPUES de loguearse como admin."
+        }
+      ]
+    },
+    {
+      "name": "03 - Admin: gestion de usuarios",
+      "item": [
+        {
+          "name": "Crear VISITOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"invitado1\",\n  \"password\": \"secreto123\",\n  \"role\": \"ROLE_VISITOR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Crear USER (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"usuario2\",\n  \"password\": \"secreto123\",\n  \"role\": \"ROLE_USER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Crear USER username corto (esperado 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"x\",\n  \"password\": \"secreto123\",\n  \"role\": \"ROLE_USER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Crear USER pass corta (esperado 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"usuario3\",\n  \"password\": \"123\",\n  \"role\": \"ROLE_USER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Rutas (roots)",
+      "item": [
+        {
+          "name": "Listar roots (inicialmente [])",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/roots",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roots"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Agregar root (slash /)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"path\": \"D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/roots",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roots"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Agregar root (backslash en JSON)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"path\": \"D:\\\\PPI-PruebasPropuestasIdeas\\\\probando opencode\\\\streamapp-backend\\\\media\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/roots",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roots"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          },
+          "description": "Si 4.2 ya agrego la misma ruta, puede devolver 409 (duplicada)."
+        },
+        {
+          "name": "Agregar root C:/Windows",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"path\": \"C:/Windows\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/roots",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roots"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Agregar 6ta root (esperado 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"path\": \"C:/Fotos\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/roots",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roots"]
+            },
+            "description": "Repetir antes de esto 4.2/4.4 y otros 3 roots distintos para llenar el cupo."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Quitar root C:/Windows",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/roots?path=C:/Windows",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roots"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "C:/Windows"
+                }
+              ]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Explorador",
+      "item": [
+        {
+          "name": "Listar raices del usuario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/explorer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "explorer"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Explorar media/musica (captura streamTicket)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const arr = pm.response.json();",
+                  "    const playable = Array.isArray(arr) ? arr.find(n => n.playable && n.streamUrl) : null;",
+                  "    if (playable) {",
+                  "        pm.collectionVariables.set('streamTicket', playable.streamUrl.replace(/^\\/api\\/stream\\//, ''));",
+                  "        pm.collectionVariables.set('currentMedia', playable.name);",
+                  "        console.log('streamTicket capturado:', playable.streamUrl);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/explorer?path=D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "explorer"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica"
+                }
+              ]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Explorar media/peliculas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/explorer?path=D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/peliculas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "explorer"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/peliculas"
+                }
+              ]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Explorar fuera de roots (esperado 403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/explorer?path=C:/Windows",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "explorer"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "C:/Windows"
+                }
+              ]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Explorar escape de ruta (esperado 403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/explorer?path=..%2F..%2F",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "explorer"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "../../"
+                }
+              ]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Streaming",
+      "item": [
+        {
+          "name": "Stream completo (sin Range)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stream/{{streamTicket}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stream", "{{streamTicket}}"]
+            },
+            "description": "Antes de correrlo, ejecutar 'Explorar media/musica' para capturar la variable streamTicket. En la pestaña Headers de la respuesta debe verse Accept-Ranges: bytes."
+          }
+        },
+        {
+          "name": "Stream con Range bytes=0-99",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Range",
+                "value": "bytes=0-99"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stream/{{streamTicket}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stream", "{{streamTicket}}"]
+            },
+            "description": "Esperado: 206, Content-Range: bytes 0-99/8192."
+          }
+        },
+        {
+          "name": "Stream con Range bytes=4000-",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Range",
+                "value": "bytes=4000-"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stream/{{streamTicket}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stream", "{{streamTicket}}"]
+            }
+          }
+        },
+        {
+          "name": "Stream con Range suffix bytes=-500",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Range",
+                "value": "bytes=-500"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stream/{{streamTicket}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stream", "{{streamTicket}}"]
+            },
+            "description": "Esperado: Content-Range: bytes 7692-8191/8192."
+          }
+        },
+        {
+          "name": "Stream con ticket manipulado (esperado 401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stream/{{streamTicket}}XYZ",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stream", "{{streamTicket}}XYZ"]
+            },
+            "description": "Concatenar caracteres al final del ticket para invalidar la firma."
+          }
+        },
+        {
+          "name": "Stream fuera de rango bytes=99999-",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Range",
+                "value": "bytes=99999-"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stream/{{streamTicket}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stream", "{{streamTicket}}"]
+            },
+            "description": "Esperado: 200 con el archivo completo (rango invalido se ignora, RFC 7233)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Favoritos y Playlists",
+      "item": [
+        {
+          "name": "Favorito: agregar cancion.mp3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"path\": \"D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "favorites"]
+            },
+            "description": "Registra el archivo en el catálogo y lo marca como favorito. Esperado: 201 con item y streamUrl."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Favorito: duplicado (esperado 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"path\": \"D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "favorites"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Favorito: listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "favorites"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Favorito: quitar",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/favorites?path=D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "favorites"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3"
+                }
+              ]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Playlist: crear",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fines de semana\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/playlists",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "playlists"]
+            },
+            "description": "Esperado: 201 con id, name e items vacío."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Playlist: listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/playlists",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "playlists"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Playlist: ver detalle {id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/playlists/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "playlists", "1"]
+            },
+            "description": "Reemplazar 1 por el id real de tu playlist. Cada item incluye streamUrl."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Playlist: agregar item {id}",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"path\": \"D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/playlists/1/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "playlists", "1", "items"]
+            },
+            "description": "Esperado: 201 con la playlist actualizada."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Playlist: quitar item {id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/playlists/1/items?path=D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "playlists", "1", "items"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3"
+                }
+              ]
+            },
+            "description": "El path va como query param (igual que roots/favorites)."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Playlist: renombrar {id}",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Roadtrip\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/playlists/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "playlists", "1"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Playlist: eliminar {id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/playlists/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "playlists", "1"]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "streamTicket",
+      "value": ""
+    },
+    {
+      "key": "currentMedia",
+      "value": ""
+    }
+  ]
+}
