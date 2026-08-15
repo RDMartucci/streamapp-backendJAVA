@@ -1144,6 +1144,225 @@
           }
         }
       ]
+    },
+    {
+      "name": "08 - Admin: borrar contenido",
+      "item": [
+        {
+          "name": "Borrar archivo individual",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/media?path=D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "media"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3"
+                }
+              ]
+            },
+            "description": "Solo ROLE_ADMIN. Borra el archivo del disco y limpia su catálogo (MediaItem), favoritos y referencias en playlists. Esperado: 200 con { path, filesDeleted, catalogItemsRemoved }."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Borrar carpeta (recursivo)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/media?path=D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/peliculas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "media"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/peliculas"
+                }
+              ]
+            },
+            "description": "Borra la carpeta y todo su contenido (recursivo). Limpia del catálogo todos los MediaItem bajo esa ruta."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Borrar root configurada (esperado 403)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/media?path=D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "media"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media"
+                }
+              ]
+            },
+            "description": "Las raíces configuradas no se pueden borrar, aunque sea admin. Esperado: 403."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Borrar ruta fuera de raices (esperado 403)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/media?path=C:/Windows",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "media"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "C:/Windows"
+                }
+              ]
+            },
+            "description": "Solo se puede borrar dentro de raíces del sistema. Esperado: 403."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Borrar con token USER (esperado 403)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/media?path=D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "media"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3"
+                }
+              ]
+            },
+            "description": "Loguéate como un USER antes de correrla. Esperado: 403."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Borrar sin token (esperado 401)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/media?path=D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "media"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/musica/cancion.mp3"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Borrar ruta inexistente (esperado 404)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/media?path=D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/no-existe.mp3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "media"],
+              "query": [
+                {
+                  "key": "path",
+                  "value": "D:/PPI-PruebasPropuestasIdeas/probando opencode/streamapp-backend/media/no-existe.mp3"
+                }
+              ]
+            }
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Borrar sin param path (esperado 400)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/media",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "media"]
+            },
+            "description": "Falta el query param path. Esperado: 400."
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "variable": [

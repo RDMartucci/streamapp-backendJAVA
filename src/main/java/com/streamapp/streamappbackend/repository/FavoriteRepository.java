@@ -15,4 +15,6 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     Optional<Favorite> findByUserAndMediaItem(User user, MediaItem mediaItem);
 
     void deleteByUserAndMediaItem(User user, MediaItem mediaItem);
+
+    void deleteByMediaItemIn(List<MediaItem> mediaItems);
 }
