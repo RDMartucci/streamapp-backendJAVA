@@ -82,9 +82,10 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider(passwordEncoder()))
 
                 .authorizeHttpRequests(auth -> auth
-                        // Público: registro, login, swagger, h2-console y streaming (el ticket es la credencial)
+                        // Público: registro, login, swagger, h2-console, streaming y TMDB
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/api/stream/**").permitAll()
+                        .requestMatchers("/api/tmdb/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         // El resto requiere autenticación

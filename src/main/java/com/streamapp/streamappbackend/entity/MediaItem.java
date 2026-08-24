@@ -49,6 +49,36 @@ public class MediaItem {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "poster_url")
+    private String posterUrl;
+
+    @Column(name = "title_original")
+    private String titleOriginal;
+
+    @Column(name = "year")
+    private Integer year;
+
+    @Column(name = "genres")
+    private String genres;  // comma-separated
+
+    @Column(name = "cast")
+    private String cast;  // top billed actors
+
+    @Column(name = "directors")
+    private String directors;
+
+    @Column(name = "trailer_youtube_id")
+    private String trailerYouTubeId;
+
+    @Column(name = "tmdb_id")
+    private Long tmdbId;
+
+    @Column(name = "media_type_detail")
+    private String mediaTypeDetail; // "movie" or "series"
+
+    @Column(name = "overview")
+    private String overview;
+
     @PrePersist
     void prePersist() {
         if (createdAt == null) {
@@ -126,5 +156,85 @@ public class MediaItem {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getPosterUrl() {
+        return posterUrl;
+    }
+
+    public void setPosterUrl(String posterUrl) {
+        this.posterUrl = posterUrl;
+    }
+
+    public String getOverview() {
+        return overview;
+    }
+
+    public void setOverview(String overview) {
+        this.overview = overview;
+    }
+
+    public String getTitleOriginal() {
+        return titleOriginal;
+    }
+
+    public void setTitleOriginal(String titleOriginal) {
+        this.titleOriginal = titleOriginal;
+    }
+
+    public Integer getYear() {
+        return year;
+    }
+
+    public void setYear(Integer year) {
+        this.year = year;
+    }
+
+    public String getGenres() {
+        return genres;
+    }
+
+    public void setGenres(String genres) {
+        this.genres = genres;
+    }
+
+    public String getCast() {
+        return cast;
+    }
+
+    public void setCast(String cast) {
+        this.cast = cast;
+    }
+
+    public String getDirectors() {
+        return directors;
+    }
+
+    public void setDirectors(String directors) {
+        this.directors = directors;
+    }
+
+    public String getTrailerYouTubeId() {
+        return trailerYouTubeId;
+    }
+
+    public void setTrailerYouTubeId(String trailerYouTubeId) {
+        this.trailerYouTubeId = trailerYouTubeId;
+    }
+
+    public Long getTmdbId() {
+        return tmdbId;
+    }
+
+    public void setTmdbId(Long tmdbId) {
+        this.tmdbId = tmdbId;
+    }
+
+    public String getMediaTypeDetail() {
+        return mediaTypeDetail;
+    }
+
+    public void setMediaTypeDetail(String mediaTypeDetail) {
+        this.mediaTypeDetail = mediaTypeDetail;
     }
 }

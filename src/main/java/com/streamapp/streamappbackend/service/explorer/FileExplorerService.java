@@ -4,6 +4,7 @@ import com.streamapp.streamappbackend.dto.ExplorerNode;
 import com.streamapp.streamappbackend.entity.MediaItem.MediaType;
 import com.streamapp.streamappbackend.entity.User;
 import com.streamapp.streamappbackend.exception.NotFoundException;
+import com.streamapp.streamappbackend.repository.MediaItemRepository;
 import com.streamapp.streamappbackend.service.streaming.StreamTicketService;
 import org.springframework.stereotype.Service;
 
@@ -24,15 +25,18 @@ public class FileExplorerService {
     private final MediaTypeResolver mediaTypeResolver;
     private final StreamTicketService streamTicketService;
     private final PathAccessValidator pathAccessValidator;
+    private final MediaItemRepository mediaItemRepository;
 
     public FileExplorerService(UserRootsService userRootsService,
                                MediaTypeResolver mediaTypeResolver,
                                StreamTicketService streamTicketService,
-                               PathAccessValidator pathAccessValidator) {
+                               PathAccessValidator pathAccessValidator,
+                               MediaItemRepository mediaItemRepository) {
         this.userRootsService = userRootsService;
         this.mediaTypeResolver = mediaTypeResolver;
         this.streamTicketService = streamTicketService;
         this.pathAccessValidator = pathAccessValidator;
+        this.mediaItemRepository = mediaItemRepository;
     }
 
     /**
@@ -96,7 +100,7 @@ public class FileExplorerService {
     }
 
     private ExplorerNode nodeForDirectory(String path, String name) {
-        return new ExplorerNode(name, path, true, null, false, null, null, null);
+        return new ExplorerNode(name, path, true, null, false, null, null, null, null);
     }
 
     private ExplorerNode node(User user, Path p, String name) {
@@ -116,7 +120,11 @@ public class FileExplorerService {
         String streamUrl = playable
                 ? "/api/stream/" + streamTicketService.generate(user.getUsername(), p.toString())
                 : null;
-        return new ExplorerNode(name, p.toString(), dir, type, playable, size, modified, streamUrl);
+        String posterUrl = null;
+        if (playable) {
+            posterUrl = mediaItemRepository.findByPath(p.toString()).map(m -> m.getPosterUrl()).orElse(null);
+        }
+        return new ExplorerNode(name, p.toString(), dir, type, playable, size, modified, streamUrl, posterUrl);
     }
 
     private Path resolveAllowed(User user, String rawPath) {

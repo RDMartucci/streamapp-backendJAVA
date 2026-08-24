@@ -12,6 +12,7 @@ public record ExplorerNode(
         boolean playable,
         Long sizeBytes,
         Instant lastModified,
-        String streamUrl
+        String streamUrl,
+        String posterUrl
 ) {
 }
