@@ -15,12 +15,13 @@ public class TitleDetailController {
     /**
      * Busca un título por query y devuelve un DTO con los detalles.
      * Parámetro de consulta: q=título a buscar (se limpiará automáticamente).
+     * Retorna 204 si no encuentra nada, para no ensuciar la consola del navegador con 404.
      */
     @GetMapping("/search")
     public ResponseEntity<?> search(@RequestParam("q") String query) {
         var result = titleDetailsService.searchAndFormat(query);
         if (result == null) {
-            return ResponseEntity.status(404).body(java.util.Map.of("error", "No se encontraron datos de TMDB para: " + query));
+            return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(result);
     }
