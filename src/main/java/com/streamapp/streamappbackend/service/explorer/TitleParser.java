@@ -15,6 +15,7 @@ public class TitleParser {
     private static final Pattern AUDIO = Pattern.compile("\\b(?:DDP\\d+\\.\\d+|DD5\\.1|AC3|AAC|DTS(?:-HD)?|Atmos|TrueHD|FLAC|Opus|MP3)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern BITDEPTH = Pattern.compile("\\b\\d+Bit\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern LANG = Pattern.compile("\\b(?:Dual|Lat|Esp|Eng|Multi|Subs?)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern EPISODE_MARKER = Pattern.compile("(?:^|[ ._-])S\\d{1,2}(?:E\\d{1,3})+(?=[ ._-]|$)", Pattern.CASE_INSENSITIVE);
     private static final Pattern GROUP_SUFFIX = Pattern.compile("[-_][A-Za-z0-9]+$");
     private static final Pattern EXTENSION = Pattern.compile("\\.[a-z0-9]+$", Pattern.CASE_INSENSITIVE);
     private static final Pattern TAG_BRACKETS = Pattern.compile("[\\[\\]()]+");
@@ -29,7 +30,13 @@ public class TitleParser {
         // 2. Quitar sufijo de grupo tipo "-NeoNoir" al final
         name = GROUP_SUFFIX.matcher(name).replaceFirst("");
 
-        // 3. Si hay año, truncar todo desde el año (el título suele estar antes del año)
+        // 3. En series, el nombre útil termina antes del marcador de episodio.
+        var episodeMatcher = EPISODE_MARKER.matcher(name);
+        if (episodeMatcher.find()) {
+            name = name.substring(0, episodeMatcher.start());
+        }
+
+        // 4. Si hay año, truncar todo desde el año (el título suele estar antes del año)
         var yearMatcher = YEAR_ANY.matcher(name);
         if (yearMatcher.find()) {
             name = name.substring(0, yearMatcher.start());
@@ -43,12 +50,12 @@ public class TitleParser {
             name = LANG.matcher(name).replaceAll(" ");
         }
 
-        // 4. Limpiar separadores y compactar
+        // 5. Limpiar separadores y compactar
         name = TAG_BRACKETS.matcher(name).replaceAll(" ");
         name = name.replace('.', ' ').replace('_', ' ').replace('-', ' ');
         name = name.replaceAll("\\s+", " ").trim();
 
-        // 5. Si quedó solo basura tipo base64 (muy largo sin vocales o sin espacios), devolver vacío para no buscar
+        // 6. Si quedó solo basura tipo base64 (muy largo sin vocales o sin espacios), devolver vacío para no buscar
         if (name.length() > 35 && !name.contains(" ") && name.matches("^[A-Za-z0-9+/=]+$")) {
             return "";
         }
