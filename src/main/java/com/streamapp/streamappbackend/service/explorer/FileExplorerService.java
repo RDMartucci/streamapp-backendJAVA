@@ -96,11 +96,11 @@ public class FileExplorerService {
     }
 
     private boolean isVisibleMediaFile(String name) {
-        return mediaTypeResolver.resolveType(name) != null || mediaTypeResolver.isSubtitle(name);
+        return mediaTypeResolver.resolveType(name) != null;
     }
 
     private ExplorerNode nodeForDirectory(String path, String name) {
-        return new ExplorerNode(name, path, true, null, false, null, null, null, null);
+        return new ExplorerNode(name, path, true, null, false, null, null, null, null, null, null, null, null);
     }
 
     private ExplorerNode node(User user, Path p, String name) {
@@ -121,10 +121,22 @@ public class FileExplorerService {
                 ? "/api/stream/" + streamTicketService.generate(user.getUsername(), p.toString())
                 : null;
         String posterUrl = null;
+        Integer year = null;
+        String genres = null;
+        Double vote = null;
+        String mediaTypeDetail = null;
         if (playable) {
-            posterUrl = mediaItemRepository.findByPath(p.toString()).map(m -> m.getPosterUrl()).orElse(null);
+            var opt = mediaItemRepository.findByNormalizedPath(p.toString().replace('\\', '/'));
+            if (opt.isPresent()) {
+                var m = opt.get();
+                posterUrl = m.getPosterUrl();
+                year = m.getYear();
+                genres = m.getGenres();
+                vote = m.getVoteAverage();
+                mediaTypeDetail = m.getMediaTypeDetail();
+            }
         }
-        return new ExplorerNode(name, p.toString(), dir, type, playable, size, modified, streamUrl, posterUrl);
+        return new ExplorerNode(name, p.toString(), dir, type, playable, size, modified, streamUrl, posterUrl, year, genres, vote, mediaTypeDetail);
     }
 
     private Path resolveAllowed(User user, String rawPath) {

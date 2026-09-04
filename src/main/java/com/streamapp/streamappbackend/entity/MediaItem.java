@@ -79,6 +79,9 @@ public class MediaItem {
     @Column(name = "overview")
     private String overview;
 
+    @Column(name = "vote_average")
+    private Double voteAverage;
+
     @PrePersist
     void prePersist() {
         if (createdAt == null) {
@@ -236,5 +239,13 @@ public class MediaItem {
 
     public void setMediaTypeDetail(String mediaTypeDetail) {
         this.mediaTypeDetail = mediaTypeDetail;
+    }
+
+    public Double getVoteAverage() {
+        return voteAverage;
+    }
+
+    public void setVoteAverage(Double voteAverage) {
+        this.voteAverage = voteAverage;
     }
 }

@@ -11,5 +11,12 @@ public record TitleDetailDto(
         String trailerUrl,
         String posterUrl,
         String mediaType,
-        Long tmdbId
+        Long tmdbId,
+        Double voteAverage,
+        java.util.List<SeasonDto> seasons,
+        Integer runtime,
+        String countries,
+        String studios,
+        String releaseDate,
+        String backdropUrl
 ) {}

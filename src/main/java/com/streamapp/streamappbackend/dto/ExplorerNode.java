@@ -13,6 +13,10 @@ public record ExplorerNode(
         Long sizeBytes,
         Instant lastModified,
         String streamUrl,
-        String posterUrl
+        String posterUrl,
+        Integer year,
+        String genres,
+        Double voteAverage,
+        String mediaTypeDetail
 ) {
 }

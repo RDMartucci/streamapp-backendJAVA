@@ -49,4 +49,16 @@ public class TitleDetailController {
         }
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/season")
+    public ResponseEntity<?> seasonEpisodes(@RequestParam("tmdbId") int tmdbId, @RequestParam("season") int season) {
+        var eps = titleDetailsService.getSeasonEpisodes(tmdbId, season);
+        return ResponseEntity.ok(eps);
+    }
+
+    @GetMapping("/search-list")
+    public ResponseEntity<?> searchList(@RequestParam("q") String query) {
+        var list = titleDetailsService.searchCandidates(query);
+        return ResponseEntity.ok(list);
+    }
 }

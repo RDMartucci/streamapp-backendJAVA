@@ -10,7 +10,7 @@ import com.streamapp.streamappbackend.service.media.MediaItemService;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -21,6 +21,8 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import org.springframework.dao.DataIntegrityViolationException;
 
 @RestController
 @RequestMapping("/api/poster")
@@ -117,30 +119,56 @@ public class PosterController {
         if (path == null || path.isBlank() || posterUrl == null || posterUrl.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        var query = entityManager.createQuery("SELECT m FROM MediaItem m WHERE m.path = :path", MediaItem.class);
-        query.setParameter("path", path);
+        // Normalizar a forward slashes y lowercase para consistencia en BD
+        String normalized = path.replace('\\', '/');
+        // Buscar por path normalizado (case-insensitive) y también con backslashes por compatibilidad
+        var query = entityManager.createNativeQuery(
+            "SELECT * FROM media_items WHERE LOWER(REPLACE(path, '\\\\', '/')) = :path OR LOWER(path) = :path2", MediaItem.class);
+        query.setParameter("path", normalized);
+        query.setParameter("path2", path);
+        @SuppressWarnings("unchecked")
         var list = query.getResultList();
         MediaItem item;
         if (list.isEmpty()) {
-            // Intentar crear el MediaItem si el archivo existe y es media válido
             try {
-                Path p = Paths.get(path);
-                // Validar que esté dentro de las raíces del usuario si hay auth
                 if (authentication != null) {
                     User user = userRepository.findByUsername(authentication.getName()).orElse(null);
-                    if (user != null) item = mediaItemService.findOrCreate(p);
-                    else return ResponseEntity.status(404).body(Map.of("error", "Usuario no encontrado"));
+                    if (user != null) {
+                        Path p = Paths.get(path);
+                        item = mediaItemService.findOrCreate(p);
+                    } else {
+                        return ResponseEntity.status(404).body(Map.of("error", "Usuario no encontrado"));
+                    }
                 } else {
                     return ResponseEntity.status(404).body(Map.of("error", "MediaItem no encontrado para path: " + path));
                 }
             } catch (Exception e) {
-                return ResponseEntity.status(404).body(Map.of("error", "No se pudo crear MediaItem: " + e.getMessage()));
+                System.err.println("Error creating MediaItem for path " + path + ": " + e.getMessage());
+                e.printStackTrace();
+                return ResponseEntity.status(500).body(Map.of("error", "Error interno: " + e.getMessage()));
             }
         } else {
-            item = list.get(0);
+            item = (MediaItem) list.get(0);
         }
-        item.setPosterUrl(posterUrl);
-        entityManager.merge(item);
-        return ResponseEntity.ok(Map.of("posterUrl", posterUrl));
+        try {
+            item.setPosterUrl(posterUrl);
+            String yearStr = body.get("year");
+            if (yearStr != null && !yearStr.isBlank()) try { item.setYear(Integer.parseInt(yearStr)); } catch (NumberFormatException ignored) {}
+            if (body.get("genres") != null) item.setGenres(body.get("genres"));
+            String voteStr = body.get("voteAverage");
+            if (voteStr != null && !voteStr.isBlank()) try { item.setVoteAverage(Double.parseDouble(voteStr)); } catch (NumberFormatException ignored) {}
+            if (body.get("titleOriginal") != null) item.setTitleOriginal(body.get("titleOriginal"));
+            if (body.get("overview") != null) item.setOverview(body.get("overview"));
+            if (body.get("mediaType") != null) item.setMediaTypeDetail(body.get("mediaType"));
+            entityManager.merge(item);
+            entityManager.flush();
+            return ResponseEntity.ok(Map.of("posterUrl", posterUrl));
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(409).body(Map.of("error", "Conflicto de datos: " + e.getMessage()));
+        } catch (Exception e) {
+            System.err.println("Error updating poster for path " + path + ": " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "Error interno: " + e.getMessage()));
+        }
     }
 }

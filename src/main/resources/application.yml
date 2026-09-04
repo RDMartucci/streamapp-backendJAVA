@@ -7,7 +7,7 @@ spring:
     default-property-inclusion: non_null
 
 server:
-  port: 8080
+  port: 8081
 
 # --- Aplicación específica ---
 app:
@@ -37,3 +37,9 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+logging:
+  level:
+    com.streamapp.streamappbackend.security.JwtAuthFilter: DEBUG
+    com.streamapp.streamappbackend.security.JwtUtil: DEBUG
+    org.springframework.security: DEBUG
