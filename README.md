@@ -11,12 +11,27 @@ Backend de la aplicación de streaming local. Java 17+, Spring Boot 3.2, MySQL y
 
 ## Puesta en marcha
 
-### 1. Levantar MySQL (Docker, opcional)
+### 1. Levantar MySQL con Docker Desktop (Windows 11)
+
+Desde PowerShell, en esta carpeta, ejecutar:
+
+```powershell
+.\start-mysql.ps1
+```
+
+El script comprueba que Docker Desktop este iniciado, levanta el contenedor
+`streamapp-mysql` y espera a que MySQL pase su healthcheck.
+
+Si PowerShell bloquea scripts por la politica de ejecucion, usar una vez:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+Como alternativa manual:
 
 ```bash
-docker run --name streamapp-mysql -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=streamapp -e MYSQL_USER=streamapp -e MYSQL_PASSWORD=streamapp \
-  -p 3306:3306 -d mysql:8
+docker compose up -d --wait mysql
 ```
 
 ### 2. Configurar el contenido
