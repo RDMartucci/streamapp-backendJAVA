@@ -56,6 +56,8 @@ public class RangeStreaming implements StreamingAdapter {
 
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+        headers.setCacheControl("no-store, no-transform");
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline");
         headers.setContentType(MediaType.parseMediaType(contentType));
         if (partial) {
             headers.set(HttpHeaders.CONTENT_RANGE,

@@ -1,6 +1,9 @@
 spring:
   application:
     name: streamapp-backend
+  mvc:
+    async:
+      request-timeout: -1
   profiles:
     active: mysql
   jackson:
