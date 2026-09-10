@@ -17,4 +17,7 @@ public interface MediaItemRepository extends JpaRepository<MediaItem, Long> {
 
     @Query("SELECT mi FROM MediaItem mi WHERE substring(mi.path, 1, length(:prefix)) = :prefix")
     List<MediaItem> findByPathPrefix(@Param("prefix") String prefix);
+
+    @Query("SELECT mi FROM MediaItem mi WHERE lower(function('replace', mi.path, '\\\\', '/')) LIKE lower(concat(:prefix, '%'))")
+    List<MediaItem> findByNormalizedPathPrefix(@Param("prefix") String prefix);
 }

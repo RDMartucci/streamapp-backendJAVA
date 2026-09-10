@@ -17,6 +17,7 @@ public record MediaItemDto(
         long size,
         Instant lastModified,
         String streamUrl,
-        String posterUrl
+        String posterUrl,
+        String mediaTypeDetail
 ) {
 }

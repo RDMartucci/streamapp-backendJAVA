@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -82,19 +83,10 @@ public class FileSystemController {
     }
 
     private Map<String, Path> browserRoots() {
-        Path home = Paths.get(System.getProperty("user.home")).toAbsolutePath().normalize();
         Map<String, Path> candidates = new LinkedHashMap<>();
-        addIfDirectory(candidates, "Descargas", home.resolve("Downloads"));
-        addIfDirectory(candidates, "Descargas", home.resolve("Descargas"));
-        addIfDirectory(candidates, "Videos", home.resolve("Videos"));
-        addIfDirectory(candidates, "Música", home.resolve("Music"));
-        addIfDirectory(candidates, "Música", home.resolve("Música"));
-        addIfDirectory(candidates, "Escritorio", home.resolve("Desktop"));
-        addIfDirectory(candidates, "Escritorio", home.resolve("Escritorio"));
-        addIfDirectory(candidates, "Documentos", home.resolve("Documents"));
-        addIfDirectory(candidates, "Documentos", home.resolve("Documentos"));
-        addIfDirectory(candidates, "Imágenes", home.resolve("Pictures"));
-        addIfDirectory(candidates, "Imágenes", home.resolve("Imágenes"));
+        for (Path root : FileSystems.getDefault().getRootDirectories()) {
+            addIfDirectory(candidates, "Disco " + root, root);
+        }
         return candidates;
     }
 

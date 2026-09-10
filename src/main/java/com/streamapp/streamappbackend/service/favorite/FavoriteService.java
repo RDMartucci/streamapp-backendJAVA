@@ -75,7 +75,8 @@ public class FavoriteService {
                 item.getSizeBytes(),
                 item.getLastModified(),
                 streamUrl,
-                null);
+                item.getPosterUrl(),
+                item.getMediaTypeDetail());
         return new FavoriteDto(favoriteId, itemDto, createdAt);
     }
 }

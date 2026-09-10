@@ -20,6 +20,15 @@ public class TitleParser {
     private static final Pattern EXTENSION = Pattern.compile("\\.[a-z0-9]+$", Pattern.CASE_INSENSITIVE);
     private static final Pattern TAG_BRACKETS = Pattern.compile("[\\[\\]()]+");
 
+    public String mediaTypeDetail(String filename, boolean video) {
+        if (!video) {
+            return null;
+        }
+        return EPISODE_MARKER.matcher(filename == null ? "" : filename).find()
+                ? "series"
+                : "movie";
+    }
+
     public String clean(String filename) {
         if (filename == null || filename.isBlank()) return filename;
         String name = filename.trim();

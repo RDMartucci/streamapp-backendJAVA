@@ -1,7 +1,7 @@
 package com.streamapp.streamappbackend.controller;
 
 import com.streamapp.streamappbackend.dto.LibraryScanResult;
-import com.streamapp.streamappbackend.entity.MediaItem;
+import com.streamapp.streamappbackend.dto.MediaItemDto;
 import com.streamapp.streamappbackend.entity.User;
 import com.streamapp.streamappbackend.exception.NotFoundException;
 import com.streamapp.streamappbackend.repository.UserRepository;
@@ -33,8 +33,8 @@ public class LibraryController {
     }
 
     @GetMapping("/items")
-    public List<MediaItem> items(Authentication authentication) {
-        return libraryCatalogService.list(currentUser(authentication));
+    public List<MediaItemDto> items(Authentication authentication) {
+        return libraryCatalogService.listDtos(currentUser(authentication));
     }
 
     private User currentUser(Authentication authentication) {

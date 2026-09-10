@@ -126,7 +126,8 @@ public class PlaylistService {
                             item.getSizeBytes(),
                             item.getLastModified(),
                             streamUrl,
-                            null);
+                            item.getPosterUrl(),
+                            item.getMediaTypeDetail());
                 })
                 .toList();
         return new PlaylistDto(
