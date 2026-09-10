@@ -30,8 +30,8 @@ app:
     password: ${ADMIN_PASSWORD:admin1234}
   tmdb:
     # API key de TMDB (gratis en https://www.themoviedb.org/).
-    # Ingresa tu clave aquí para poder buscar carteles y detalles de títulos.
-    api-key: cb3b91bce1b8118caa2032852cf3e3f3
+    # Configurar mediante TMDB_API_KEY; no guardar claves en el repositorio.
+    api-key: ${TMDB_API_KEY:}
     # URL base para carteles/posters de TMDB.
     image-base-url: https://image.tmdb.org/t/p
 

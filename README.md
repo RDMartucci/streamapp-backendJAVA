@@ -44,7 +44,7 @@ Por defecto el backend sirve `./media` (carpeta junto al `pom.xml`). Se sobreesc
 ./mvnw spring-boot:run
 ```
 
-Servidor en `http://localhost:8080`. El `DataInitializer` crea el admin de arranque
+Servidor en `http://localhost:8081`. El `DataInitializer` crea el admin de arranque
 (por defecto `admin` / `admin1234`, sobreescribible con `ADMIN_USERNAME` / `ADMIN_PASSWORD`).
 
 ## Endpoints principales
@@ -98,6 +98,7 @@ Servidor en `http://localhost:8080`. El `DataInitializer` crea el admin de arran
 | `JWT_EXPIRATION_MS` | `3600000` | Expiración del token (ms) |
 | `STREAM_TICKET_TTL_MS` | `1800000` | Vigencia del ticket de streaming (ms) |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | `admin` / `admin1234` | Admin seed |
+| `TMDB_API_KEY` | vacío | Clave opcional para metadata de TMDB |
 
 ## Formato de errores
 
