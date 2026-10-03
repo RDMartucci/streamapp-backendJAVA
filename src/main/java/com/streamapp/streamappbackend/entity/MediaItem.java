@@ -26,7 +26,7 @@ public class MediaItem {
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 768)
     private String path;
 
     @Enumerated(EnumType.STRING)
@@ -76,11 +76,20 @@ public class MediaItem {
     @Column(name = "media_type_detail")
     private String mediaTypeDetail; // "movie" or "series"
 
-    @Column(name = "overview")
+    @Column(name = "overview", columnDefinition = "TEXT")
     private String overview;
 
     @Column(name = "vote_average")
     private Double voteAverage;
+
+    @Column(name = "backdrop_url")
+    private String backdropUrl;
+
+    @Column(name = "metadata_provider")
+    private String metadataProvider;
+
+    @Column(name = "metadata_updated_at")
+    private Instant metadataUpdatedAt;
 
     @PrePersist
     void prePersist() {
@@ -247,5 +256,29 @@ public class MediaItem {
 
     public void setVoteAverage(Double voteAverage) {
         this.voteAverage = voteAverage;
+    }
+
+    public String getBackdropUrl() {
+        return backdropUrl;
+    }
+
+    public void setBackdropUrl(String backdropUrl) {
+        this.backdropUrl = backdropUrl;
+    }
+
+    public String getMetadataProvider() {
+        return metadataProvider;
+    }
+
+    public void setMetadataProvider(String metadataProvider) {
+        this.metadataProvider = metadataProvider;
+    }
+
+    public Instant getMetadataUpdatedAt() {
+        return metadataUpdatedAt;
+    }
+
+    public void setMetadataUpdatedAt(Instant metadataUpdatedAt) {
+        this.metadataUpdatedAt = metadataUpdatedAt;
     }
 }

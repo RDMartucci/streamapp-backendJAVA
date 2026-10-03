@@ -1,6 +1,7 @@
 package com.streamapp.streamappbackend.service.library;
 
 import com.streamapp.streamappbackend.dto.LibraryScanResult;
+import com.streamapp.streamappbackend.dto.LibraryPageDto;
 import com.streamapp.streamappbackend.dto.MediaItemDto;
 import com.streamapp.streamappbackend.entity.MediaItem;
 import com.streamapp.streamappbackend.entity.User;
@@ -11,6 +12,12 @@ import com.streamapp.streamappbackend.service.explorer.TitleParser;
 import com.streamapp.streamappbackend.service.explorer.UserRootsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -25,6 +32,8 @@ import java.util.List;
 
 @Service
 public class LibraryCatalogService {
+
+    private static final Logger log = LoggerFactory.getLogger(LibraryCatalogService.class);
 
     private final UserRootsService userRootsService;
     private final MediaTypeResolver mediaTypeResolver;
@@ -65,9 +74,9 @@ public class LibraryCatalogService {
                             counters[2]++;
                             return FileVisitResult.CONTINUE;
                         }
-                        String normalizedPath = normalizePath(path);
-                        boolean exists = mediaItemRepository.findByNormalizedPath(normalizedPath).isPresent();
                         try {
+                            String normalizedPath = normalizePath(path);
+                            boolean exists = mediaItemRepository.findByNormalizedPath(normalizedPath).isPresent();
                             upsert(path);
                             if (exists) {
                                 counters[1]++;
@@ -76,6 +85,7 @@ public class LibraryCatalogService {
                             }
                         } catch (IOException | RuntimeException e) {
                             counters[2]++;
+                            log.warn("No se pudo indexar el archivo {}", path, e);
                         }
                         return FileVisitResult.CONTINUE;
                     }
@@ -124,9 +134,76 @@ public class LibraryCatalogService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public LibraryPageDto page(User user, int page, int size, String query, String type) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        Specification<MediaItem> specification = withinUserRoots(user);
+        if (query != null && !query.isBlank()) {
+            String term = "%" + query.trim().toLowerCase() + "%";
+            specification = specification.and((root, q, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("title")), term),
+                    cb.like(cb.lower(root.get("path")), term)));
+        }
+        if (type != null && !type.isBlank() && !"all".equalsIgnoreCase(type)) {
+            if ("audio".equalsIgnoreCase(type)) {
+                specification = specification.and((root, q, cb) ->
+                        cb.equal(root.get("mediaType"), MediaItem.MediaType.AUDIO));
+            } else if ("movie".equalsIgnoreCase(type) || "series".equalsIgnoreCase(type)) {
+                specification = specification.and((root, q, cb) ->
+                        cb.equal(cb.lower(root.get("mediaTypeDetail")), type.toLowerCase()));
+            }
+        }
+        Page<MediaItem> result = mediaItemRepository.findAll(specification,
+                PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "title")));
+        List<MediaItem> catalogItems = list(user);
+        long movieCount = catalogItems.stream()
+                .filter(item -> isDetailType(item, "movie"))
+                .count();
+        long seriesCount = catalogItems.stream()
+                .filter(item -> isDetailType(item, "series"))
+                .count();
+        long audioCount = catalogItems.stream()
+                .filter(item -> item.getMediaType() == MediaItem.MediaType.AUDIO)
+                .count();
+        return new LibraryPageDto(
+                result.getContent().stream().map(item -> mediaItemDtoMapper.toDto(user, item)).toList(),
+                result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages(),
+                movieCount, seriesCount, audioCount);
+    }
+
+    private boolean isDetailType(MediaItem item, String expected) {
+        if (item.getMediaType() != MediaItem.MediaType.VIDEO) {
+            return false;
+        }
+        String detail = item.getMediaTypeDetail();
+        if (detail == null || detail.isBlank()) {
+            detail = titleParser.mediaTypeDetail(item.getPath(), true);
+        }
+        return expected.equalsIgnoreCase(detail);
+    }
+
+    private Specification<MediaItem> withinUserRoots(User user) {
+        List<String> roots = userRootsService.getRoots(user).stream()
+                .map(root -> normalizePath(Path.of(root)) + "/")
+                .toList();
+        return (root, query, cb) -> {
+            if (roots.isEmpty()) {
+                return cb.disjunction();
+            }
+            return cb.or(roots.stream()
+                    .map(prefix -> cb.like(
+                            cb.lower(cb.function("replace", String.class, root.get("path"), cb.literal("\\"), cb.literal("/"))),
+                            prefix.toLowerCase() + "%"))
+                    .toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+    }
+
     private void upsert(Path path) throws IOException {
         String normalizedPath = normalizePath(path);
-        MediaItem item = mediaItemRepository.findByNormalizedPath(normalizedPath).orElseGet(MediaItem::new);
+        MediaItem item = mediaItemRepository.findByPath(normalizedPath)
+                .orElseGet(() -> mediaItemRepository.findByNormalizedPath(normalizedPath)
+                        .orElseGet(MediaItem::new));
         item.setTitle(titleParser.clean(path.getFileName().toString()));
         item.setPath(normalizedPath);
         item.setSourceType(MediaItem.SourceType.LOCAL);

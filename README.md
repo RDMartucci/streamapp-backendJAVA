@@ -1,34 +1,43 @@
 # StreamApp Backend
 
-Backend de la aplicación de streaming local. Java 17+, Spring Boot 3.2, MySQL y JWT.
+Servidor de la aplicación de streaming local. Java 21, Spring Boot, MySQL y JWT.
+
+## Instalación integrada (recomendada)
+
+Esta modalidad crea una única instalación: el servidor entrega tanto la API
+como la interfaz web. No hay que ejecutar Node, Vite ni un servidor web
+adicional en la computadora que guarda los archivos.
+
+1. Instala Docker Desktop (Windows/macOS) o Docker Engine con Compose (Linux).
+2. En esta carpeta, copia `.env.example` a `.env` y reemplaza todos los valores
+   de contraseña y secreto.
+3. Crea la carpeta `media` aquí y coloca dentro el contenido a compartir. Como
+   alternativa, define `MEDIA_PATH` en `.env` con una ruta absoluta de tu disco.
+4. Ejecuta `docker compose up --build -d`.
+5. Abre `http://localhost:8081` en la computadora servidor. Desde otro equipo
+   de la misma red, abre `http://IP_DEL_SERVIDOR:8081`.
+
+La primera vez, inicia sesión con el usuario definido por `ADMIN_USERNAME` y
+`ADMIN_PASSWORD`. Al configurar una raíz de contenido dentro de la aplicación,
+usa `/media` o una de sus subcarpetas: es la ruta visible dentro del contenedor.
+
+Para permitir acceso desde otros dispositivos, autoriza el puerto elegido
+(`STREAMAPP_PORT`, normalmente 8081) en el firewall del equipo servidor. Esta
+configuración está pensada para red local; no expongas el puerto directamente a
+Internet.
 
 ## Requisitos
 
-- JDK 17+
+- JDK 21+
 - Maven (o usar el wrapper `mvnw`)
 - MySQL (el proyecto incluye perfil para Docker) o Docker Desktop
 - Contenido de media local al que apuntan las raíces (`app.media.root`)
 
-## Puesta en marcha
+## Desarrollo local (avanzado)
 
 ### 1. Levantar MySQL con Docker Desktop (Windows 11)
 
-Desde PowerShell, en esta carpeta, ejecutar:
-
-```powershell
-.\start-mysql.ps1
-```
-
-El script comprueba que Docker Desktop este iniciado, levanta el contenedor
-`streamapp-mysql` y espera a que MySQL pase su healthcheck.
-
-Si PowerShell bloquea scripts por la politica de ejecucion, usar una vez:
-
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
-
-Como alternativa manual:
+Después de crear el archivo `.env` indicado arriba, levantar solo MySQL con:
 
 ```bash
 docker compose up -d --wait mysql
@@ -83,8 +92,8 @@ Servidor en `http://localhost:8081`. El `DataInitializer` crea el admin de arran
 
 ## Swagger / OpenAPI
 
-- UI: `http://localhost:8080/swagger-ui.html`
-- Docs JSON: `http://localhost:8080/v3/api-docs`
+- UI: `http://localhost:8081/swagger-ui.html`
+- Docs JSON: `http://localhost:8081/v3/api-docs`
 - Usar el botón **Authorize** con un token de login para probar los endpoints protegidos.
 
 ## Configuración por variables de entorno
@@ -99,6 +108,31 @@ Servidor en `http://localhost:8081`. El `DataInitializer` crea el admin de arran
 | `STREAM_TICKET_TTL_MS` | `1800000` | Vigencia del ticket de streaming (ms) |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | `admin` / `admin1234` | Admin seed |
 | `TMDB_API_KEY` | vacío | Clave opcional para metadata de TMDB |
+
+Al iniciar el backend local, `TMDB_API_KEY` se carga automáticamente desde el
+archivo `.env` de esta carpeta. También puedes definirla en el entorno; esa
+variable tiene prioridad sobre el archivo:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+TMDB proporciona posters y backdrops. StreamApp utiliza el backdrop como fondo
+principal de la página de detalle cuando la API devuelve uno.
+
+TMDB es opcional. Si no se configura `TMDB_API_KEY`, la ficha se genera con el
+nombre del archivo y, cuando existen junto al vídeo, con estos archivos locales:
+
+```text
+pelicula.nfo
+poster.jpg | poster.jpeg | poster.png
+folder.jpg | folder.jpeg | folder.png
+fanart.jpg | fanart.jpeg | fanart.png
+backdrop.jpg | backdrop.jpeg | backdrop.png
+```
+
+El `.nfo` puede incluir `title`, `originaltitle`, `year`, `plot` y uno o varios
+elementos `genre`. La reproducción no depende de metadata externa.
 
 ## Formato de errores
 

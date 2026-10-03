@@ -1,13 +1,36 @@
 services:
+  streamapp:
+    build:
+      context: ..
+      dockerfile: streamapp-backend/Dockerfile
+    container_name: streamapp-server
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/streamapp?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      DB_USERNAME: streamapp
+      DB_PASSWORD: ${DB_PASSWORD:?Definí DB_PASSWORD en el archivo .env}
+      MEDIA_ROOT: /media
+      JWT_SECRET: ${JWT_SECRET:?Definí JWT_SECRET en el archivo .env}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Definí ADMIN_PASSWORD en el archivo .env}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+    ports:
+      - "${STREAMAPP_PORT:-8081}:8081"
+    volumes:
+      - "${MEDIA_PATH:-./media}:/media"
+
   mysql:
     image: mysql:8.4
     container_name: streamapp-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Definí MYSQL_ROOT_PASSWORD en el archivo .env}
       MYSQL_DATABASE: streamapp
       MYSQL_USER: streamapp
-      MYSQL_PASSWORD: streamapp
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Definí DB_PASSWORD en el archivo .env}
     ports:
       - "3306:3306"
     volumes:

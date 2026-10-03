@@ -5,15 +5,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streamapp.streamappbackend.dto.TitleDetailDto;
 import com.streamapp.streamappbackend.service.explorer.TitleParser;
 import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Service
 public class TitleDetailsService {
+
+    private static final Logger log = LoggerFactory.getLogger(TitleDetailsService.class);
 
     @Value("${app.tmdb.api-key:}")
     private String apiKey;
@@ -32,25 +38,133 @@ public class TitleDetailsService {
     }
 
     public TitleDetailDto searchAndFormat(String rawQuery) {
-        if (apiKey == null || apiKey.isBlank()) return null;
-        String query = titleParser.clean(rawQuery);
-        if (query.isBlank()) query = rawQuery.replaceAll("\\.[a-z0-9]+$", "").replace('.', ' ').trim();
         Integer fileYear = extractYear(rawQuery);
-        try {
-            String encoded = java.net.URLEncoder.encode(query, java.nio.charset.StandardCharsets.UTF_8);
-            URI uri = URI.create("https://api.themoviedb.org/3/search/multi?api_key=" + apiKey + "&query=" + encoded + "&include_adult=false&language=es-AR");
-            HttpRequest req = HttpRequest.newBuilder().uri(uri).GET().header("Accept", "application/json").build();
-            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-            if (resp.statusCode() != 200) return null;
-            JsonNode root = objectMapper.readTree(resp.body());
-            JsonNode results = root.get("results");
-            if (results == null || !results.isArray() || results.isEmpty()) return null;
+        for (String query : queryVariants(rawQuery)) {
+            JsonNode results = searchResults(query);
+            if (results == null || results.isEmpty()) {
+                continue;
+            }
             JsonNode chosen = pickByYear(results, fileYear);
             String mediaType = chosen.path("media_type").asText("movie");
             long tmdbId = chosen.path("id").asLong();
-            if ("tv".equals(mediaType)) return getSeriesDetails((int) tmdbId);
-            return getMovieDetails((int) tmdbId);
-        } catch (Exception e) {
+            TitleDetailDto detail = "tv".equals(mediaType)
+                    ? getSeriesDetails((int) tmdbId)
+                    : getMovieDetails((int) tmdbId);
+            if (detail != null) {
+                return detail;
+            }
+        }
+        return null;
+    }
+
+    public boolean isConfigured() {
+        return apiKey != null && !apiKey.isBlank();
+    }
+
+    public TitleDetailDto basicDetails(String rawQuery, String rawPath) {
+        String title = titleParser.clean(rawQuery);
+        if (title == null || title.isBlank()) {
+            title = rawQuery == null ? "Título sin nombre" : rawQuery;
+        }
+        String original = title;
+        Integer year = extractYear(rawQuery == null ? "" : rawQuery);
+        String overview = "";
+        String genres = "";
+        String posterUrl = null;
+        String backdropUrl = null;
+        if (rawPath != null && !rawPath.isBlank()) {
+            Path media = Path.of(rawPath);
+            Path nfo = sibling(media, ".nfo");
+            if (Files.isRegularFile(nfo)) {
+                try {
+                    String xml = Files.readString(nfo);
+                    title = xmlValue(xml, "title", title);
+                    original = xmlValue(xml, "originaltitle", original);
+                    overview = xmlValue(xml, "plot", "");
+                    genres = xmlValues(xml, "genre");
+                    String nfoYear = xmlValue(xml, "year", "");
+                    if (!nfoYear.isBlank()) year = Integer.parseInt(nfoYear);
+                } catch (java.io.IOException | NumberFormatException e) {
+                    log.warn("No se pudo leer metadata local {}", nfo, e);
+                }
+            }
+            if (Files.isRegularFile(sibling(media, "poster.jpg"))) {
+                posterUrl = localImageUrl(rawPath, "poster");
+            } else if (Files.isRegularFile(sibling(media, "folder.jpg"))) {
+                posterUrl = localImageUrl(rawPath, "folder");
+            }
+            if (Files.isRegularFile(sibling(media, "fanart.jpg"))) {
+                backdropUrl = localImageUrl(rawPath, "fanart");
+            } else if (Files.isRegularFile(sibling(media, "backdrop.jpg"))) {
+                backdropUrl = localImageUrl(rawPath, "backdrop");
+            }
+        }
+        String mediaType = rawQuery != null && titleParser.mediaTypeDetail(rawQuery, true).equals("series")
+                ? "series" : "movie";
+        return new TitleDetailDto(title, original, year, genres, overview, "", "", null,
+                posterUrl, mediaType, null, null, null, null, null, null, null, backdropUrl);
+    }
+
+    private Path sibling(Path media, String filename) {
+        return media.toAbsolutePath().normalize().getParent().resolve(filename);
+    }
+
+    private String localImageUrl(String mediaPath, String kind) {
+        return "/api/tmdb/local-image?path=" + java.net.URLEncoder.encode(mediaPath, java.nio.charset.StandardCharsets.UTF_8)
+                + "&kind=" + kind;
+    }
+
+    private String xmlValue(String xml, String tag, String fallback) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("<" + tag + ">\\s*(.*?)\\s*</" + tag + ">", java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL)
+                .matcher(xml);
+        return matcher.find() ? matcher.group(1).trim() : fallback;
+    }
+
+    private String xmlValues(String xml, String tag) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("<" + tag + ">\\s*(.*?)\\s*</" + tag + ">", java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL)
+                .matcher(xml);
+        java.util.List<String> values = new java.util.ArrayList<>();
+        while (matcher.find()) values.add(matcher.group(1).trim());
+        return String.join(", ", values);
+    }
+
+    private java.util.List<String> queryVariants(String rawQuery) {
+        java.util.LinkedHashSet<String> variants = new java.util.LinkedHashSet<>();
+        if (rawQuery != null && !rawQuery.isBlank()) {
+            String withoutExtension = rawQuery.replaceAll("\\.[a-z0-9]+$", "").trim();
+            variants.add(titleParser.clean(rawQuery));
+            variants.add(withoutExtension.replace('.', ' ').trim());
+            variants.add(withoutExtension);
+        }
+        variants.removeIf(String::isBlank);
+        return new java.util.ArrayList<>(variants);
+    }
+
+    private JsonNode searchResults(String query) {
+        if (!isConfigured()) {
+            return null;
+        }
+        try {
+            String encoded = java.net.URLEncoder.encode(query, java.nio.charset.StandardCharsets.UTF_8);
+            URI uri = URI.create("https://api.themoviedb.org/3/search/multi?api_key=" + apiKey
+                    + "&query=" + encoded + "&include_adult=false&language=es-AR");
+            HttpRequest req = HttpRequest.newBuilder().uri(uri).GET()
+                    .header("Accept", "application/json").build();
+            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() != 200) {
+                log.warn("TMDB search failed with HTTP {} for query '{}'", resp.statusCode(), query);
+                return null;
+            }
+            JsonNode results = objectMapper.readTree(resp.body()).get("results");
+            return results != null && results.isArray() ? results : null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("TMDB search interrupted for query '{}'", query);
+            return null;
+        } catch (java.io.IOException | RuntimeException e) {
+            log.warn("TMDB search failed for query '{}': {}", query, e.getMessage());
             return null;
         }
     }
@@ -76,23 +190,18 @@ public class TitleDetailsService {
     }
 
     public java.util.List<TitleDetailDto> searchCandidates(String rawQuery) {
-        if (apiKey == null || apiKey.isBlank()) return java.util.Collections.emptyList();
-        String query = titleParser.clean(rawQuery);
-        if (query.isBlank()) query = rawQuery.replaceAll("\\.[a-z0-9]+$", "").replace('.', ' ').trim();
-        if (query.isBlank()) return java.util.Collections.emptyList();
+        if (!isConfigured()) {
+            log.warn("No se pueden buscar coincidencias TMDB: TMDB_API_KEY no está configurada");
+            return java.util.Collections.emptyList();
+        }
+        java.util.LinkedHashMap<String, TitleDetailDto> candidates = new java.util.LinkedHashMap<>();
         try {
-            String encoded = java.net.URLEncoder.encode(query, java.nio.charset.StandardCharsets.UTF_8);
-            URI uri = URI.create("https://api.themoviedb.org/3/search/multi?api_key=" + apiKey + "&query=" + encoded + "&include_adult=false&language=es-AR");
-            HttpRequest req = HttpRequest.newBuilder().uri(uri).GET().header("Accept", "application/json").build();
-            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-            if (resp.statusCode() != 200) return java.util.Collections.emptyList();
-            JsonNode root = objectMapper.readTree(resp.body());
-            JsonNode results = root.get("results");
-            if (results == null || !results.isArray() || results.isEmpty()) return java.util.Collections.emptyList();
-            java.util.List<TitleDetailDto> out = new java.util.ArrayList<>();
-            int limit = Math.min(results.size(), 6);
-            for (int i = 0; i < limit; i++) {
-                JsonNode n = results.get(i);
+            for (String query : queryVariants(rawQuery)) {
+                JsonNode results = searchResults(query);
+                if (results == null || !results.isArray()) continue;
+                int limit = Math.min(results.size(), 10);
+                for (int i = 0; i < limit && candidates.size() < 12; i++) {
+                    JsonNode n = results.get(i);
                 String mediaType = n.path("media_type").asText("movie");
                 if (!"movie".equals(mediaType) && !"tv".equals(mediaType)) continue;
                 long tmdbId = n.path("id").asLong();
@@ -104,10 +213,14 @@ public class TitleDetailsService {
                 String posterUrl = poster != null && !poster.equals("null") && !poster.isBlank() ? imageBaseUrl + "/w185" + poster : null;
                 Double vote = n.path("vote_average").isNumber() ? n.path("vote_average").asDouble() : null;
                 String overview = n.path("overview").asText("");
-                out.add(new TitleDetailDto(title, original, year, "", overview, "", "", null, posterUrl, mediaType.equals("tv") ? "series" : "movie", tmdbId, vote, null, null, null, null, date, null));
+                    candidates.putIfAbsent(mediaType + ":" + tmdbId,
+                            new TitleDetailDto(title, original, year, "", overview, "", "", null, posterUrl,
+                                    mediaType.equals("tv") ? "series" : "movie", tmdbId, vote, null, null, null, null, date, null));
+                }
             }
-            return out;
-        } catch (Exception e) {
+            return new java.util.ArrayList<>(candidates.values());
+        } catch (RuntimeException e) {
+            log.warn("Error al buscar coincidencias TMDB para '{}': {}", rawQuery, e.getMessage());
             return java.util.Collections.emptyList();
         }
     }

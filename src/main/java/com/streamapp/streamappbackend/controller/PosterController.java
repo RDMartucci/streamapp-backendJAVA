@@ -7,6 +7,7 @@ import com.streamapp.streamappbackend.repository.UserRepository;
 import com.streamapp.streamappbackend.service.TmdbService;
 import com.streamapp.streamappbackend.service.explorer.TitleParser;
 import com.streamapp.streamappbackend.service.media.MediaItemService;
+import com.streamapp.streamappbackend.repository.MediaItemRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -42,6 +43,9 @@ public class PosterController {
 
     @Autowired
     private MediaItemService mediaItemService;
+
+    @Autowired
+    private MediaItemRepository mediaItemRepository;
 
     @PostConstruct
     public void init() {
@@ -112,25 +116,20 @@ public class PosterController {
      * Si el MediaItem no existe aún, lo crea.
      */
     @PutMapping("/by-path")
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<Map<String, String>> setPosterByPath(Authentication authentication, @RequestBody Map<String, String> body) {
         String path = body.get("path");
         String posterUrl = body.get("posterUrl");
-        if (path == null || path.isBlank() || posterUrl == null || posterUrl.isBlank()) {
+        if (path == null || path.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        // Normalizar a forward slashes y lowercase para consistencia en BD
-        String normalized = path.replace('\\', '/');
-        // Buscar por path normalizado (case-insensitive) y también con backslashes por compatibilidad
-        var query = entityManager.createNativeQuery(
-            "SELECT * FROM media_items WHERE LOWER(REPLACE(path, '\\\\', '/')) = :path OR LOWER(path) = :path2", MediaItem.class);
-        query.setParameter("path", normalized);
-        query.setParameter("path2", path);
-        @SuppressWarnings("unchecked")
-        var list = query.getResultList();
-        MediaItem item;
-        if (list.isEmpty()) {
-            try {
+        try {
+            String normalized = path.replace('\\', '/');
+            MediaItem item = mediaItemRepository.findByPath(normalized)
+                    .orElseGet(() -> mediaItemRepository.findByPath(path)
+                            .orElseGet(() -> mediaItemRepository.findByNormalizedPath(normalized)
+                                    .orElse(null)));
+            if (item == null) {
                 if (authentication != null) {
                     User user = userRepository.findByUsername(authentication.getName()).orElse(null);
                     if (user != null) {
@@ -142,27 +141,28 @@ public class PosterController {
                 } else {
                     return ResponseEntity.status(404).body(Map.of("error", "MediaItem no encontrado para path: " + path));
                 }
-            } catch (Exception e) {
-                System.err.println("Error creating MediaItem for path " + path + ": " + e.getMessage());
-                e.printStackTrace();
-                return ResponseEntity.status(500).body(Map.of("error", "Error interno: " + e.getMessage()));
             }
-        } else {
-            item = (MediaItem) list.get(0);
-        }
-        try {
-            item.setPosterUrl(posterUrl);
+            if (posterUrl != null && !posterUrl.isBlank()) {
+                item.setPosterUrl(posterUrl);
+            }
             String yearStr = body.get("year");
             if (yearStr != null && !yearStr.isBlank()) try { item.setYear(Integer.parseInt(yearStr)); } catch (NumberFormatException ignored) {}
             if (body.get("genres") != null) item.setGenres(body.get("genres"));
             String voteStr = body.get("voteAverage");
             if (voteStr != null && !voteStr.isBlank()) try { item.setVoteAverage(Double.parseDouble(voteStr)); } catch (NumberFormatException ignored) {}
             if (body.get("titleOriginal") != null) item.setTitleOriginal(body.get("titleOriginal"));
+            if (body.get("title") != null && !body.get("title").isBlank()) item.setTitle(body.get("title"));
             if (body.get("overview") != null) item.setOverview(body.get("overview"));
             if (body.get("mediaType") != null) item.setMediaTypeDetail(body.get("mediaType"));
-            entityManager.merge(item);
-            entityManager.flush();
-            return ResponseEntity.ok(Map.of("posterUrl", posterUrl));
+            if (body.containsKey("backdropUrl")) {
+                item.setBackdropUrl(body.get("backdropUrl"));
+            }
+            if (body.get("metadataProvider") != null && !body.get("metadataProvider").isBlank()) {
+                item.setMetadataProvider(body.get("metadataProvider"));
+            }
+            item.setMetadataUpdatedAt(java.time.Instant.now());
+            mediaItemRepository.saveAndFlush(item);
+            return ResponseEntity.ok(Map.of("posterUrl", posterUrl == null ? "" : posterUrl));
         } catch (DataIntegrityViolationException e) {
             return ResponseEntity.status(409).body(Map.of("error", "Conflicto de datos: " + e.getMessage()));
         } catch (Exception e) {
