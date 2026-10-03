@@ -142,6 +142,8 @@ public class PosterController {
                     return ResponseEntity.status(404).body(Map.of("error", "MediaItem no encontrado para path: " + path));
                 }
             }
+            Long tmdbId = parseTmdbId(body.get("tmdbId"));
+            if (tmdbId != null) item.setTmdbId(tmdbId);
             if (posterUrl != null && !posterUrl.isBlank()) {
                 item.setPosterUrl(posterUrl);
             }
@@ -160,8 +162,25 @@ public class PosterController {
             if (body.get("metadataProvider") != null && !body.get("metadataProvider").isBlank()) {
                 item.setMetadataProvider(body.get("metadataProvider"));
             }
-            item.setMetadataUpdatedAt(java.time.Instant.now());
+            java.time.Instant updatedAt = java.time.Instant.now();
+            item.setMetadataUpdatedAt(updatedAt);
             mediaItemRepository.saveAndFlush(item);
+            if (tmdbId != null && posterUrl != null && !posterUrl.isBlank()
+                    && item.getMediaTypeDetail() != null) {
+                for (MediaItem copy : mediaItemRepository.findAllByTmdbIdAndMediaTypeDetail(
+                        tmdbId, item.getMediaTypeDetail())) {
+                    if (copy.getId().equals(item.getId())) continue;
+                    copy.setPosterUrl(item.getPosterUrl());
+                    copy.setTitleOriginal(item.getTitleOriginal());
+                    copy.setYear(item.getYear());
+                    copy.setGenres(item.getGenres());
+                    copy.setVoteAverage(item.getVoteAverage());
+                    copy.setOverview(item.getOverview());
+                    copy.setBackdropUrl(item.getBackdropUrl());
+                    copy.setMetadataProvider(item.getMetadataProvider());
+                    copy.setMetadataUpdatedAt(updatedAt);
+                }
+            }
             return ResponseEntity.ok(Map.of("posterUrl", posterUrl == null ? "" : posterUrl));
         } catch (DataIntegrityViolationException e) {
             return ResponseEntity.status(409).body(Map.of("error", "Conflicto de datos: " + e.getMessage()));
@@ -169,6 +188,16 @@ public class PosterController {
             System.err.println("Error updating poster for path " + path + ": " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("error", "Error interno: " + e.getMessage()));
+        }
+    }
+
+    private Long parseTmdbId(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            long tmdbId = Long.parseLong(value);
+            return tmdbId > 0 ? tmdbId : null;
+        } catch (NumberFormatException ignored) {
+            return null;
         }
     }
 }

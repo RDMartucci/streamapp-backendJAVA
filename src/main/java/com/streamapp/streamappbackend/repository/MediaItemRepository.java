@@ -13,6 +13,8 @@ public interface MediaItemRepository extends JpaRepository<MediaItem, Long>, Jpa
 
     Optional<MediaItem> findByPath(String path);
 
+    List<MediaItem> findAllByTmdbIdAndMediaTypeDetail(Long tmdbId, String mediaTypeDetail);
+
     @Query("SELECT mi FROM MediaItem mi WHERE lower(function('replace', mi.path, '\\\\', '/')) = lower(:path)")
     Optional<MediaItem> findByNormalizedPath(@Param("path") String path);
 
