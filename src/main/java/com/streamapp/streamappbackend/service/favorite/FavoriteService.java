@@ -76,7 +76,11 @@ public class FavoriteService {
                 item.getLastModified(),
                 streamUrl,
                 item.getPosterUrl(),
-                item.getMediaTypeDetail());
+                item.getMediaTypeDetail(),
+                item.getTmdbId(),
+                item.getYear(),
+                item.getGenres(),
+                item.getVoteAverage());
         return new FavoriteDto(favoriteId, itemDto, createdAt);
     }
 }

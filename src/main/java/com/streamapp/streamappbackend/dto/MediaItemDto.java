@@ -18,6 +18,10 @@ public record MediaItemDto(
         Instant lastModified,
         String streamUrl,
         String posterUrl,
-        String mediaTypeDetail
+        String mediaTypeDetail,
+        Long tmdbId,
+        Integer year,
+        String genres,
+        Double voteAverage
 ) {
 }

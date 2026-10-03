@@ -127,7 +127,11 @@ public class PlaylistService {
                             item.getLastModified(),
                             streamUrl,
                             item.getPosterUrl(),
-                            item.getMediaTypeDetail());
+                            item.getMediaTypeDetail(),
+                            item.getTmdbId(),
+                            item.getYear(),
+                            item.getGenres(),
+                            item.getVoteAverage());
                 })
                 .toList();
         return new PlaylistDto(
