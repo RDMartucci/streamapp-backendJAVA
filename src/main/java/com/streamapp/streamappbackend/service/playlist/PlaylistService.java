@@ -131,6 +131,8 @@ public class PlaylistService {
                             item.getTmdbId(),
                             item.getYear(),
                             item.getGenres(),
+                            item.getCast(),
+                            item.getDirectors(),
                             item.getVoteAverage());
                 })
                 .toList();

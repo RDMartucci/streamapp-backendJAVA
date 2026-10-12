@@ -22,6 +22,8 @@ public record MediaItemDto(
         Long tmdbId,
         Integer year,
         String genres,
+        String cast,
+        String directors,
         Double voteAverage
 ) {
 }

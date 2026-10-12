@@ -67,6 +67,11 @@ Servidor en `http://localhost:8081`. El `DataInitializer` crea el admin de arran
 | POST | `/api/roots` | Autenticado | Agregar raíz (máx. 5) |
 | DELETE | `/api/roots?path=...` | Autenticado | Quitar raíz |
 | GET | `/api/explorer` | Autenticado | Explorar contenido (navegación, streamUrl firmado) |
+| GET | `/api/library` | Autenticado | Biblioteca paginada con filtros por título, tipo, actor, director, año, género y puntuación mínima |
+| GET | `/api/library/filter-options` | Autenticado | Opciones de metadata disponibles para los filtros del usuario |
+| POST | `/api/library/scan` | Autenticado | Escanear raíces y actualizar catálogo y metadata |
+| POST | `/api/library/scan/cancel` | Autenticado | Solicitar la cancelación del escaneo activo del usuario |
+| GET | `/api/library/items` | Autenticado | Listar los elementos completos del catálogo del usuario |
 | GET | `/api/stream/{ticket}` | Público | Streaming por rangos (HTTP Range, 206) |
 | GET/POST | `/api/favorites` | USER/ADMIN | Favoritos del usuario |
 | DELETE | `/api/favorites?path=...` | USER/ADMIN | Quitar favorito |
@@ -89,6 +94,19 @@ Servidor en `http://localhost:8081`. El `DataInitializer` crea el admin de arran
   (firmado con expiración, 30 min por defecto) y habilita el streaming por rangos.
 - Rutas del filesystem validadas contra las raíces del usuario (anti-traversal).
 - CORS habilitado (ver `SecurityConfig`). Para Bearer token no se usan cookies.
+
+## Biblioteca paginada y escaneo
+
+`GET /api/library` admite `page` (base cero, default `0`), `size` (default `24`),
+`q` (búsqueda por título), `type` (`all`, `movie`, `series` o `audio`), `actor`,
+`director`, `year`, `genre` y `stars` (puntuación mínima). Las opciones válidas
+para los filtros de metadata se consultan con `GET /api/library/filter-options`
+y se derivan del catálogo del usuario.
+
+La cancelación del escaneo es cooperativa: se procesa entre operaciones del
+recorrido y del enriquecimiento de metadata. Las consultas a TMDB iniciadas por
+el escaneo pueden interrumpirse. Los cambios de catálogo guardados antes de
+cancelar se conservan y no se revierten.
 
 ## Swagger / OpenAPI
 

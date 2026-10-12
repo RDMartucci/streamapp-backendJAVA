@@ -15,6 +15,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.BooleanSupplier;
 
 @Service
 public class TitleDetailsService {
@@ -38,9 +44,14 @@ public class TitleDetailsService {
     }
 
     public TitleDetailDto searchAndFormat(String rawQuery) {
+        return searchAndFormat(rawQuery, () -> false);
+    }
+
+    public TitleDetailDto searchAndFormat(String rawQuery, BooleanSupplier cancelled) {
         Integer fileYear = extractYear(rawQuery);
         for (String query : queryVariants(rawQuery)) {
-            JsonNode results = searchResults(query);
+            if (cancelled.getAsBoolean()) return null;
+            JsonNode results = searchResults(query, cancelled);
             if (results == null || results.isEmpty()) {
                 continue;
             }
@@ -48,8 +59,8 @@ public class TitleDetailsService {
             String mediaType = chosen.path("media_type").asText("movie");
             long tmdbId = chosen.path("id").asLong();
             TitleDetailDto detail = "tv".equals(mediaType)
-                    ? getSeriesDetails((int) tmdbId)
-                    : getMovieDetails((int) tmdbId);
+                    ? getSeriesDetails((int) tmdbId, cancelled)
+                    : getMovieDetails((int) tmdbId, cancelled);
             if (detail != null) {
                 return detail;
             }
@@ -143,6 +154,10 @@ public class TitleDetailsService {
     }
 
     private JsonNode searchResults(String query) {
+        return searchResults(query, () -> false);
+    }
+
+    private JsonNode searchResults(String query, BooleanSupplier cancelled) {
         if (!isConfigured()) {
             return null;
         }
@@ -152,7 +167,8 @@ public class TitleDetailsService {
                     + "&query=" + encoded + "&include_adult=false&language=es-AR");
             HttpRequest req = HttpRequest.newBuilder().uri(uri).GET()
                     .header("Accept", "application/json").build();
-            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> resp = sendCancellable(req, cancelled);
+            if (resp == null) return null;
             if (resp.statusCode() != 200) {
                 log.warn("TMDB search failed with HTTP {} for query '{}'", resp.statusCode(), query);
                 return null;
@@ -226,11 +242,16 @@ public class TitleDetailsService {
     }
 
     public TitleDetailDto getMovieDetails(int tmdbId) {
+        return getMovieDetails(tmdbId, () -> false);
+    }
+
+    public TitleDetailDto getMovieDetails(int tmdbId, BooleanSupplier cancelled) {
         if (apiKey == null || apiKey.isBlank()) return null;
         try {
             URI uri = URI.create("https://api.themoviedb.org/3/movie/" + tmdbId + "?api_key=" + apiKey + "&language=es-AR&append_to_response=credits,videos");
             HttpRequest req = HttpRequest.newBuilder().uri(uri).GET().header("Accept", "application/json").build();
-            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> resp = sendCancellable(req, cancelled);
+            if (resp == null) return null;
             if (resp.statusCode() != 200) return null;
             JsonNode n = objectMapper.readTree(resp.body());
             String title = n.path("title").asText("");
@@ -259,11 +280,16 @@ public class TitleDetailsService {
     }
 
     public TitleDetailDto getSeriesDetails(int tmdbId) {
+        return getSeriesDetails(tmdbId, () -> false);
+    }
+
+    public TitleDetailDto getSeriesDetails(int tmdbId, BooleanSupplier cancelled) {
         if (apiKey == null || apiKey.isBlank()) return null;
         try {
             URI uri = URI.create("https://api.themoviedb.org/3/tv/" + tmdbId + "?api_key=" + apiKey + "&language=es-AR&append_to_response=aggregate_credits,videos");
             HttpRequest req = HttpRequest.newBuilder().uri(uri).GET().header("Accept", "application/json").build();
-            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> resp = sendCancellable(req, cancelled);
+            if (resp == null) return null;
             if (resp.statusCode() != 200) return null;
             JsonNode n = objectMapper.readTree(resp.body());
             String title = n.path("name").asText("");
@@ -293,6 +319,34 @@ public class TitleDetailsService {
             return new TitleDetailDto(title, original, year, genres, overview, cast, directors, trailerUrl, posterUrl, "series", (long) tmdbId, vote, seasons, runtime, countries, studios, releaseDate, backdropUrl);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    private HttpResponse<String> sendCancellable(HttpRequest request, BooleanSupplier cancelled)
+            throws IOException, InterruptedException {
+        if (cancelled.getAsBoolean()) return null;
+        CompletableFuture<HttpResponse<String>> response = httpClient.sendAsync(
+                request, HttpResponse.BodyHandlers.ofString());
+        try {
+            while (true) {
+                if (cancelled.getAsBoolean()) {
+                    response.cancel(true);
+                    return null;
+                }
+                try {
+                    return response.get(100, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException ignored) {
+                    // Periodically check the scan cancellation flag while TMDB is responding.
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    if (cause instanceof IOException ioException) throw ioException;
+                    throw new IOException("No se pudo completar la consulta a TMDB", cause);
+                }
+            }
+        } catch (InterruptedException e) {
+            response.cancel(true);
+            Thread.currentThread().interrupt();
+            throw e;
         }
     }
 

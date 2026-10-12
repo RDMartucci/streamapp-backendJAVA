@@ -155,6 +155,8 @@ public class PosterController {
             if (body.get("titleOriginal") != null) item.setTitleOriginal(body.get("titleOriginal"));
             if (body.get("title") != null && !body.get("title").isBlank()) item.setTitle(body.get("title"));
             if (body.get("overview") != null) item.setOverview(body.get("overview"));
+            if (body.get("cast") != null) item.setCast(body.get("cast"));
+            if (body.get("directors") != null) item.setDirectors(body.get("directors"));
             if (body.get("mediaType") != null) item.setMediaTypeDetail(body.get("mediaType"));
             if (body.containsKey("backdropUrl")) {
                 item.setBackdropUrl(body.get("backdropUrl"));
@@ -176,6 +178,8 @@ public class PosterController {
                     copy.setGenres(item.getGenres());
                     copy.setVoteAverage(item.getVoteAverage());
                     copy.setOverview(item.getOverview());
+                    copy.setCast(item.getCast());
+                    copy.setDirectors(item.getDirectors());
                     copy.setBackdropUrl(item.getBackdropUrl());
                     copy.setMetadataProvider(item.getMetadataProvider());
                     copy.setMetadataUpdatedAt(updatedAt);

@@ -2,6 +2,8 @@ package com.streamapp.streamappbackend.controller;
 
 import com.streamapp.streamappbackend.dto.LibraryScanResult;
 import com.streamapp.streamappbackend.dto.LibraryPageDto;
+import com.streamapp.streamappbackend.dto.LibraryFilterOptionsDto;
+import com.streamapp.streamappbackend.dto.LibraryScanCancelResult;
 import com.streamapp.streamappbackend.dto.MediaItemDto;
 import com.streamapp.streamappbackend.entity.User;
 import com.streamapp.streamappbackend.exception.NotFoundException;
@@ -34,9 +36,19 @@ public class LibraryController {
         return libraryCatalogService.scan(currentUser(authentication));
     }
 
+    @PostMapping("/scan/cancel")
+    public LibraryScanCancelResult cancelScan(Authentication authentication) {
+        return new LibraryScanCancelResult(libraryCatalogService.cancelScan(currentUser(authentication)));
+    }
+
     @GetMapping("/items")
     public List<MediaItemDto> items(Authentication authentication) {
         return libraryCatalogService.listDtos(currentUser(authentication));
+    }
+
+    @GetMapping("/filter-options")
+    public LibraryFilterOptionsDto filterOptions(Authentication authentication) {
+        return libraryCatalogService.filterOptions(currentUser(authentication));
     }
 
     @GetMapping
@@ -44,8 +56,14 @@ public class LibraryController {
                                @RequestParam(defaultValue = "0") int page,
                                @RequestParam(defaultValue = "24") int size,
                                @RequestParam(required = false) String q,
-                               @RequestParam(defaultValue = "all") String type) {
-        return libraryCatalogService.page(currentUser(authentication), page, size, q, type);
+                               @RequestParam(defaultValue = "all") String type,
+                               @RequestParam(required = false) String actor,
+                               @RequestParam(required = false) String director,
+                               @RequestParam(required = false) Integer year,
+                               @RequestParam(required = false) String genre,
+                               @RequestParam(required = false) Double stars) {
+        return libraryCatalogService.page(currentUser(authentication), page, size, q, type,
+                actor, director, year, genre, stars);
     }
 
     private User currentUser(Authentication authentication) {

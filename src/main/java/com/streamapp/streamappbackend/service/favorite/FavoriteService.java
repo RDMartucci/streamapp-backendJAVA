@@ -80,6 +80,8 @@ public class FavoriteService {
                 item.getTmdbId(),
                 item.getYear(),
                 item.getGenres(),
+                item.getCast(),
+                item.getDirectors(),
                 item.getVoteAverage());
         return new FavoriteDto(favoriteId, itemDto, createdAt);
     }
