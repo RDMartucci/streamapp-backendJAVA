@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "9f4b2c1e-8a3d-4d5e-9b6f-1c2d3e4f5a6b",
-    "name": "StreamApp Backend",
-    "description": "Pruebas del backend streamapp. El login guarda el token automáticamente y el explorador captura el ticket de streaming (variable streamTicket) para los tests de streaming. Cambiar la variable baseUrl si el servidor corre en otra puerta.",
+    "name": "SVHome Backend",
+    "description": "Pruebas del backend SVHome. El login guarda el token automáticamente y el explorador captura el ticket de streaming (variable streamTicket) para los tests de streaming. Cambiar la variable baseUrl si el servidor corre en otra puerta.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [

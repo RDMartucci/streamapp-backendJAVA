@@ -1,9 +1,9 @@
 services:
-  streamapp:
+  svhome:
     build:
       context: ..
       dockerfile: streamapp-backend/Dockerfile
-    container_name: streamapp-server
+    container_name: svhome-server
     restart: unless-stopped
     depends_on:
       mysql:
@@ -18,13 +18,13 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Definí ADMIN_PASSWORD en el archivo .env}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
     ports:
-      - "${STREAMAPP_PORT:-8081}:8081"
+      - "${SVHOME_PORT:-${STREAMAPP_PORT:-8081}}:8081"
     volumes:
       - "${MEDIA_PATH:-./media}:/media"
 
   mysql:
     image: mysql:8.4
-    container_name: streamapp-mysql
+    container_name: svhome-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Definí MYSQL_ROOT_PASSWORD en el archivo .env}

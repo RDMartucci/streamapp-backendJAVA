@@ -17,14 +17,14 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     @Bean
-    public OpenAPI streamAppOpenAPI() {
+    public OpenAPI svHomeOpenAPI() {
         final String schemeName = "bearerAuth";
 
         return new OpenAPI()
                 .info(new Info()
-                        .title("StreamApp Backend API")
+                        .title("SVHome Backend API")
                         .description("""
-                                Backend de la app de streaming local.
+                                Servidor multimedia de SVHome.
                                 - Auth pública: /api/auth/register y /api/auth/login
                                 - Streaming por rangos con ticket firmado: /api/stream/{ticket} (público, sin token)
                                 - El resto de los endpoints exige JWT. Algunos solo para ADMIN.

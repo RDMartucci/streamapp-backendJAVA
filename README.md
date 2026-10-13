@@ -1,6 +1,6 @@
-# StreamApp Backend
+# SVHome Backend
 
-Servidor de la aplicación de streaming local. Java 21, Spring Boot, MySQL y JWT.
+Servidor multimedia de SVHome. Java 21, Spring Boot, MySQL y JWT.
 
 ## Instalación integrada (recomendada)
 
@@ -22,7 +22,8 @@ La primera vez, inicia sesión con el usuario definido por `ADMIN_USERNAME` y
 usa `/media` o una de sus subcarpetas: es la ruta visible dentro del contenedor.
 
 Para permitir acceso desde otros dispositivos, autoriza el puerto elegido
-(`STREAMAPP_PORT`, normalmente 8081) en el firewall del equipo servidor. Esta
+(`SVHOME_PORT`, normalmente 8081) en el firewall del equipo servidor. También
+se mantiene `STREAMAPP_PORT` como alias de compatibilidad. Esta
 configuración está pensada para red local; no expongas el puerto directamente a
 Internet.
 
@@ -118,8 +119,9 @@ cancelar se conservan y no se revierten.
 
 | Variable | Default | Descripción |
 |---|---|---|
-| `DB_URL` | `jdbc:mysql://localhost:3306/streamapp...` | JDBC URL |
-| `DB_USERNAME` / `DB_PASSWORD` | `streamapp` / `streamapp` | Credenciales DB |
+| `SVHOME_PORT` | `8081` | Puerto HTTP del servidor (alias legado: `STREAMAPP_PORT`) |
+| `DB_URL` | `jdbc:mysql://localhost:3306/streamapp...` | JDBC URL (esquema legado conservado) |
+| `DB_USERNAME` / `DB_PASSWORD` | `streamapp` / `streamapp` | Credenciales MySQL (usuario legado conservado) |
 | `MEDIA_ROOT` | `./media` | Directorio base del contenido |
 | `JWT_SECRET` | (clave de desarrollo) | Secreto de firma JWT |
 | `JWT_EXPIRATION_MS` | `3600000` | Expiración del token (ms) |
@@ -135,7 +137,7 @@ variable tiene prioridad sobre el archivo:
 .\mvnw.cmd spring-boot:run
 ```
 
-TMDB proporciona posters y backdrops. StreamApp utiliza el backdrop como fondo
+TMDB proporciona posters y backdrops. SVHome utiliza el backdrop como fondo
 principal de la página de detalle cuando la API devuelve uno.
 
 TMDB es opcional. Si no se configura `TMDB_API_KEY`, la ficha se genera con el

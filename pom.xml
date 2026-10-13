@@ -6,10 +6,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.streamapp</groupId>
-    <artifactId>streamapp-backend</artifactId>
+    <artifactId>svhome-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>streamapp-backend</name>
-    <description>Stream App Backend - Java/Spring Boot</description>
+    <name>SVHome Backend</name>
+    <description>SVHome multimedia server - Java/Spring Boot</description>
     <packaging>jar</packaging>
 
     <parent>

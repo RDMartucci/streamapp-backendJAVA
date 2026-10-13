@@ -19,7 +19,7 @@ WORKDIR /app
 RUN addgroup -S streamapp && adduser -S streamapp -G streamapp \
     && mkdir -p /media \
     && chown -R streamapp:streamapp /app /media
-COPY --from=backend-build --chown=streamapp:streamapp /build/target/streamapp-backend-0.0.1-SNAPSHOT.jar ./streamapp.jar
+COPY --from=backend-build --chown=streamapp:streamapp /build/target/svhome-backend-0.0.1-SNAPSHOT.jar ./svhome.jar
 USER streamapp
 EXPOSE 8081
-ENTRYPOINT ["java", "-jar", "/app/streamapp.jar"]
+ENTRYPOINT ["java", "-jar", "/app/svhome.jar"]
